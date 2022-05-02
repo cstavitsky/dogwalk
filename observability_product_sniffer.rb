@@ -13,21 +13,49 @@ class ObservabilityProductSniffer
     
     begin
       puts "Scraping #{site}"
+      detected_on = nil
+
+      #navigate to homepage
       driver.get(site)
-      #############
-      # here, we need to try to find instances of hyperlinks with the text
-      # login, signin, log in, sign in.
-      # If we find any links matching any of these, we should then navigate
-      # to the found page.
-      #############
+
+      if !tools_used.empty?
+        detected_on = 'homepage'
+      else
+        # if no observability tool was detected on the homepage,
+        # navigate to login/account/sign in page, because these are more
+        # likely to contain app code and therefore observability monitoring.
+        sign_in = driver.find_elements(:xpath, "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'sign in')]")
+        log_in = driver.find_elements(:xpath, "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'log in')]")
+        login = driver.find_elements(:xpath, "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'login')]")
+        account = driver.find_elements(:xpath, "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'account')]")
+
+        if !sign_in.empty?
+          detected_on = 'sign in'
+          sign_in.first.click
+        elsif !log_in.empty?
+          detected_on = 'log in'
+          log_in.first.click
+        elsif !login.empty?
+          detected_on = 'login (no space)'
+          login.first.click
+        elsif !account.empty?
+          detected_on = 'account'
+          account.first.click
+        else
+          detected_on = 'n/a'
+        end
+      end
+
       return {
         tools_used: tools_used,
+        detected_on: detected_on,
         error: nil
       }
     rescue StandardError => e
       # could capture the exception and do something with it. shrug
       return {
         tools_used: nil,
+        detected_on: nil,
         error: e
       }
     ensure
@@ -37,6 +65,7 @@ class ObservabilityProductSniffer
         # could capture the exception and do something with it. shrug
         return {
           tools_used: nil,
+          detected_on: nil,
           error: e
         }
       end
