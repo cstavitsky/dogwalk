@@ -6,11 +6,13 @@ class ObservabilityProductSniffer
   end
 
   def sniff
-    options = Selenium::WebDriver::Firefox::Options.new(args: ['-headless'])
-    @driver = Selenium::WebDriver.for(:firefox, capabilities: options)
-    wait = Selenium::WebDriver::Wait.new(timeout: 10)
+    options = Selenium::WebDriver::Chrome::Options.new
+    options.add_argument('--headless')
+    @driver = Selenium::WebDriver.for :chrome, capabilities: options
+    @driver.manage.timeouts.page_load = 10 # seconds
     
     begin
+      puts "Scraping #{site}"
       driver.get(site)
       #############
       # here, we need to try to find instances of hyperlinks with the text
@@ -18,20 +20,27 @@ class ObservabilityProductSniffer
       # If we find any links matching any of these, we should then navigate
       # to the found page.
       #############
-      tools = tools_used
+      return {
+        tools_used: tools_used,
+        error: nil
+      }
     rescue StandardError => e
       # could capture the exception and do something with it. shrug
-      puts e
+      return {
+        tools_used: nil,
+        error: e
+      }
     ensure
       begin
         driver.quit
       rescue StandardError => e
         # could capture the exception and do something with it. shrug
-        puts e
+        return {
+          tools_used: nil,
+          error: e
+        }
       end
     end
-
-    tools
   end
 
   def tools_used
