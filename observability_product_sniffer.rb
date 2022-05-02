@@ -12,14 +12,22 @@ class ObservabilityProductSniffer
     
     begin
       driver.get(site)
+      #############
+      # here, we need to try to find instances of hyperlinks with the text
+      # login, signin, log in, sign in.
+      # If we find any links matching any of these, we should then navigate
+      # to the found page.
+      #############
       tools = tools_used
     rescue StandardError => e
       # could capture the exception and do something with it. shrug
+      puts e
     ensure
       begin
         driver.quit
       rescue StandardError => e
         # could capture the exception and do something with it. shrug
+        puts e
       end
     end
 

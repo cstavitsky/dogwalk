@@ -1,18 +1,20 @@
 require 'selenium-webdriver'
 require 'pry'
 require './observability_product_sniffer.rb'
+require './salesforce_csv_parser.rb'
 require './yc_client.rb'
 require './csv_parser.rb'
 
 puts "Starting scraping."
-companies = YCClient.company_data
+# companies = YCClient.company_data #leaving as example
+companies = SalesforceCSVParser.new.company_data
 # companies = companies[0...5] #truncate while i test if this works. remove line when running for real
 problems_scraping = false
 formatted_list = []
 companies.each do |company|
-  observability_products_detected = ObservabilityProductSniffer.new(company['website']).sniff
+  observability_products_detected = ObservabilityProductSniffer.new(company.website).sniff
   if observability_products_detected.nil?
-    puts "Could not detect observability for #{company['name']}"
+    puts "Could not detect observability for #{company.name}"
     problems_scraping = true
     observability_products_detected = ''
   else
@@ -20,15 +22,18 @@ companies.each do |company|
   end
   
   org_details = {
-    company: company['name'],
-    website: company['website'],
+    company: company.name,
+    website: company.website,
     uses_sentry: observability_products_detected.include?('sentry'),
-    observability_products_detected: observability_products_detected,
-    description: company['one_liner'],
-    location: company['location'],
-    industries: company['industries'],
-    top_company: company['top_company'],
-    team_size: company['team_size'],
+    uses_rollbar: observability_products_detected.include?('rollbar'),
+    uses_logrocket: observability_products_detected.include?('logrocket'),
+    uses_newrelic: observability_products_detected.include?('newrelic'),
+    uses_datadog: observability_products_detected.include?('datadog'),
+    uses_bugsnag: observability_products_detected.include?('bugsnag'),
+    segment: company.segment,
+    total_touch_arr: company.total_touch_arr,
+    id: company.id,
+    owner: company.owner,
     problems_scraping: problems_scraping
   }
   formatted_list << org_details
