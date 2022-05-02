@@ -3,7 +3,7 @@
 class Array
   def to_csv(csv_filename="observed_list.csv")
     require 'csv'
-    CSV.open(csv_filename, "wb") do |csv|
+    CSV.open(csv_filename, "a+") do |csv|
       csv << first.keys # adds the attributes name on the first line
       self.each do |hash|
         csv << hash.values
