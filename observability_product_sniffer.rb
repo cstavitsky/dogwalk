@@ -8,6 +8,7 @@ class ObservabilityProductSniffer
   def sniff
     options = Selenium::WebDriver::Chrome::Options.new
     options.add_argument('--headless')
+    options.add_argument("--disable-notifications")
     @driver = Selenium::WebDriver.for :chrome, capabilities: options
     @driver.manage.timeouts.page_load = 10 # seconds
     
@@ -24,31 +25,39 @@ class ObservabilityProductSniffer
         # if no observability tool was detected on the homepage,
         # navigate to login/account/sign in page, because these are more
         # likely to contain app code and therefore observability monitoring.
-        sign_in = driver.find_elements(:xpath, "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'sign in')]")
-        log_in = driver.find_elements(:xpath, "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'log in')]")
-        login = driver.find_elements(:xpath, "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'login')]")
-        account = driver.find_elements(:xpath, "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'account')]")
 
+        # using elements plural here to avoid error-throwing, and then jsut selecting first result
+        sign_in = driver.find_elements(:xpath, "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'sign in')]").map{|el| el.attribute('href')}
+        log_in = driver.find_elements(:xpath, "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'log in')]").map{|el| el.attribute('href')}
+        login = driver.find_elements(:xpath, "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'login')]").map{|el| el.attribute('href')}
+        account = driver.find_elements(:xpath, "//a[contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'account')]").map{|el| el.attribute('href')}
+
+        url = nil
         if !sign_in.empty?
           detected_on = 'sign in'
-          sign_in.first.click
+          url = sign_in.first
         elsif !log_in.empty?
           detected_on = 'log in'
-          log_in.first.click
+          url = log_in.first
         elsif !login.empty?
           detected_on = 'login (no space)'
-          login.first.click
+          url = login.first
         elsif !account.empty?
           detected_on = 'account'
-          account.first.click
+          url = account.first
         else
           detected_on = 'n/a'
+        end
+
+        if url
+          puts "    -> " + url
+          driver.navigate.to url
         end
       end
 
       return {
         tools_used: tools_used,
-        detected_on: detected_on,
+        detected_on: tools_used.empty? ? "n/a" : detected_on,
         error: nil
       }
     rescue StandardError => e

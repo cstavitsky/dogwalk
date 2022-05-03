@@ -8,16 +8,18 @@ require './csv_parser.rb'
 puts "Starting scraping."
 # companies = YCClient.company_data #leaving as example
 companies = SalesforceCSVParser.new.company_data
-# companies = companies[10...30] #truncate while i test if this works. remove line when running for real
+# companies = companies[1...50] #truncate while i test if this works. remove line when running for real
 problems_scraping = nil
 formatted_list = []
 companies.each do |company|
   observability_products_detected = ObservabilityProductSniffer.new(company.website).sniff
+  detected_on = observability_products_detected[:detected_on]
   captured_error = observability_products_detected[:error]
   # binding.pry
   if captured_error
     puts "Could not detect observability for #{company.name} -- #{captured_error.message}"
     problems_scraping = captured_error.message
+    detected_on = "errored out - please examine this site manually"
     observability_products_detected = ''
   else
     problems_scraping = nil
@@ -37,6 +39,7 @@ companies.each do |company|
     total_touch_arr: company.total_touch_arr,
     id: company.id,
     owner: company.owner,
+    detected_on: detected_on,
     problems_scraping: problems_scraping
   }
   formatted_list << org_details
