@@ -7,8 +7,8 @@ require './csv_parser.rb'
 
 puts "Starting scraping."
 # companies = YCClient.company_data #leaving as example
-companies = SalesforceCSVParser.new.company_data
-# companies = companies[1...50] #truncate while i test if this works. remove line when running for real
+companies = SalesforceCSVParser.new("./raw_salesforce_data.csv").company_data
+# companies = companies[2000...-1] #truncate while i test if this works. remove line when running for real
 problems_scraping = nil
 formatted_list = []
 companies.each do |company|
