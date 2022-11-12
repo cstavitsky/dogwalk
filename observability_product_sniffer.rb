@@ -160,30 +160,4 @@ class ObservabilityProductSniffer
       return true if tool[:detected]
     end
   end
-
-  private
-
-  def sentry?
-    driver.execute_script("return !!window.Sentry || !!window.__SENTRY__ || !!window.Raven;")
-  end
-
-  def newrelic?
-    driver.execute_script("return !!window.newrelic;")
-  end
-
-  def bugsnag?
-    driver.execute_script("return !!window.Bugsnag || !!window.bugsnag || !!window.bugsnagClient;")
-  end
-
-  def rollbar?
-    driver.execute_script("return !!window._rollbarDidLoad;")
-  end
-
-  def datadog?
-    driver.execute_script("return !!window.DD_RUM;")
-  end
-
-  def logrocket?
-    driver.execute_script("return !!window._lr_loaded;")
-  end
 end
