@@ -1,5 +1,6 @@
 class ObservabilityProductSniffer
   attr_reader :site, :driver
+  require('./sniffed_site.rb')
 
   def initialize(site)
     @site = site
@@ -25,11 +26,11 @@ class ObservabilityProductSniffer
       #####  FOR OBSERVABILITY TOOLS ####################
       ###################################################
       ###################################################
-
-      if !tools_used.empty?
+      current_tools = tools_used
+      if detected_any_sdks?(current_tools)
         return {
-          tools_used: tools_used,
-          detected_on: tools_used.empty? ? "n/a" : 'homepage',
+          tools_used: current_tools,
+          detected_on: 'homepage',
           error: nil
         }
       end
@@ -47,10 +48,11 @@ class ObservabilityProductSniffer
         # check_frame_for_sentry(driver, frame)
         driver.switch_to.frame frame
 
-        if !tools_used.empty?
+        current_tools = tools_used
+        if detected_any_sdks?(current_tools)
           return {
-            tools_used: tools_used,
-            detected_on: tools_used.empty? ? "n/a" : 'homepage (iframe)',
+            tools_used: current_tools,
+            detected_on: 'homepage (iframe)',
             error: nil
           }
         end
@@ -105,10 +107,11 @@ class ObservabilityProductSniffer
           # check_frame_for_sentry(driver, frame)
           driver.switch_to.frame frame
           
-          if !tools_used.empty?
+          current_tools = tools_used
+          if detected_any_sdks?(current_tools)
             return {
-              tools_used: tools_used,
-              detected_on: tools_used.empty? ? "n/a" : detected_on,
+              tools_used: current_tools,
+              detected_on: detected_on,
               error: nil
             }
           end
@@ -117,9 +120,10 @@ class ObservabilityProductSniffer
         end
       end
 
+
       return {
-        tools_used: tools_used,
-        detected_on: tools_used.empty? ? "n/a" : detected_on,
+        tools_used: current_tools,
+        detected_on: 'n/a',
         error: nil
       }
     rescue StandardError => e
@@ -144,14 +148,17 @@ class ObservabilityProductSniffer
   end
 
   def tools_used
-    tools = []
-    tools << 'sentry' if sentry?
-    tools << 'newrelic' if newrelic?
-    tools << 'bugsnag' if bugsnag?
-    tools << 'rollbar' if rollbar?
-    tools << 'datadog' if datadog?
-    tools << 'logrocket' if logrocket?
-    tools
+    SniffedSite.new(driver)
+  end
+
+  def detected_any_sdks?(sniffed_site)
+    sniffed_site.detected_any_sdks?
+  end
+
+  def detected_one_or_more_observability_tools?
+    tools_used.each do |tool|
+      return true if tool[:detected]
+    end
   end
 
   private

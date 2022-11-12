@@ -7,15 +7,14 @@ require './csv_parser.rb'
 
 puts "Starting scraping."
 # companies = YCClient.company_data #leaving as example
-companies = SalesforceCSVParser.new("./raw_salesforce_data.csv").company_data
-# companies = companies[2000...-1] #truncate while i test if this works. remove line when running for real
+companies = SalesforceCSVParser.new("./dog_walker_v2_11_9_22.csv").company_data
+companies = companies[0...10] #truncate while i test if this works. remove line when running for real
 problems_scraping = nil
 formatted_list = []
 companies.each do |company|
   observability_products_detected = ObservabilityProductSniffer.new(company.website).sniff
   detected_on = observability_products_detected[:detected_on]
   captured_error = observability_products_detected[:error]
-  # binding.pry
   if captured_error
     puts "Could not detect observability for #{company.name} -- #{captured_error.message}"
     problems_scraping = captured_error.message
@@ -26,17 +25,18 @@ companies.each do |company|
     observability_products_detected = observability_products_detected.empty? ? '' : observability_products_detected[:tools_used]
   end
   
+  sniffed_data = observability_products_detected.data
   org_details = {
     company: company.name,
     website: company.website,
-    uses_sentry: observability_products_detected.include?('sentry'),
-    uses_rollbar: observability_products_detected.include?('rollbar'),
-    uses_logrocket: observability_products_detected.include?('logrocket'),
-    uses_newrelic: observability_products_detected.include?('newrelic'),
-    uses_datadog: observability_products_detected.include?('datadog'),
-    uses_bugsnag: observability_products_detected.include?('bugsnag'),
-    segment: company.segment,
-    total_touch_arr: company.total_touch_arr,
+    uses_sentry: sniffed_data["sentry"][:detected],
+    uses_rollbar: sniffed_data['rollbar'][:detected],
+    uses_logrocket: sniffed_data['logrocket'][:detected],
+    uses_newrelic: sniffed_data['newrelic'][:detected],
+    uses_datadog: sniffed_data['datadog'][:detected],
+    uses_bugsnag: sniffed_data['bugsnag'][:detected],
+    # segment: company.segment,
+    # total_touch_arr: company.total_touch_arr,
     id: company.id,
     owner: company.owner,
     detected_on: detected_on,

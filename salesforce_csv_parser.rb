@@ -25,14 +25,20 @@ class SalesforceCSVParser
 			####### and increase accuracy. So these column names are more relevant. Keeping the above
 			####### commented out til next time I need to run against a raw Salesforce export.
 			####### Or could just rename the columns from the raw Salesforce report to match the below *shrug*
+			# binding.pry
 			details = {
-				name: row['company'],
-				segment: row['account_segment'],
-				website: website(row['website']),
+				name: row['name'],
+				segment: row['segment'],
+				website: row['website'],
 				total_touch_arr: row['total_touch_arr'],
-				id: row['account_id'],
-				owner: row['account_owner']
+				id: row['id'],
+				owner: row['owner']
 			}
+			puts details[:website]
+
+			unless details[:website].include?("http")
+				details[:website] = 'http://' + details[:website]
+			end
 			account = SalesforceAccount.new(
 				details
 			)
