@@ -38,23 +38,13 @@ class SniffedSite
   end
 
   def detect_additional_metadata!(tool_name)
-    puts("-----------------")
-    puts("TODO: detecting add'l sentry context...")
-    puts("-----------------")
     sentry = @data["sentry"]
-    sentry[:sdk_version] = determine_sdk || 'n/a'
+    sentry[:sdk_version] = determine_sdk_version || 'n/a'
     sentry[:dsn_host] = dsn_host || 'n/a'
     sentry[:project_id] = project_id || 'n/a'
-    # sentry[:uses_sentry_performance] = uses_sentry_performance?
-    # sentry[:performance_sample_rate] = sentry_performance_sample_rate
-    # sentry[:error_sample_rate] = sentry_error_sample_rate
-    # sentry[:dsn_host] = dsn_host
-    # sentry[:project_id] = sentry_project_id
-    # detect various metadata and put it under
-    # data[:sentry]. For example:
-    #   data[:sentry][:sampleRatePerformance] = ...
-    #   data[:sentry][:sampleRateErrors] = ...
-    #   data[:sentry][:sdkVersion] = ...
+    sentry[:uses_sentry_performance] = uses_sentry_performance?
+    sentry[:performance_sample_rate] = sentry_performance_sample_rate
+    sentry[:error_sample_rate] = sentry_error_sample_rate
   end
 
   def detected_any_sdks?
@@ -102,10 +92,10 @@ class SniffedSite
     end
   end
 
-  def determine_sdk
+  def determine_sdk_version
     if sentry_global_var_exists?
-      options = sentry_options
-      options['_metadata'] ? options['_metadata'] : '<unable to determine>'
+      version = driver.execute_script("return #{sentry_options}['_metadata']['sdk']['version']")
+      version ? version : '<unable to determine>'
     end
   end
 
@@ -114,7 +104,73 @@ class SniffedSite
   end
 
   def sentry_options
-    driver.execute_script("return __SENTRY__.hub.getClient().getOptions()")
+    "__SENTRY__.hub.getClient().getOptions()"
   end
+
+  def traces_sample_rate
+    driver.execute_script("return #{sentry_options}['tracesSampleRate']")
+  end
+
+  def traces_sampler
+    driver.execute_script("return #{sentry_options}['tracesSampler']")
+  end
+
+  def uses_sentry_performance?
+    sentry_global_var_exists? && (!!traces_sample_rate || !!traces_sampler)
+  end
+
+  # Currently there are only two ways a customer could be proven to use performance;
+  #   either tracesSampleRate or tracesSampler
+  def sentry_performance_sample_rate
+    if uses_sentry_performance?
+      traces_sample_rate ? traces_sample_rate*100 : 'using tracesSampler function'
+    end
+  end
+
+  def sentry_error_sample_rate
+    sample_rate = '<unable to determine>'
+    configured_rate = nil
+    if sentry_global_var_exists?
+      configured_rate = driver.execute_script("return #{sentry_options}['sampleRate']")
+      sample_rate = configured_rate ? configured_rate*100 : sample_rate
+    end
+    sample_rate
+  end
+
+# function usesSentryPerformance() {
+#   if (typeof __SENTRY__ != 'undefined') {
+#     let options = __SENTRY__.hub.getClient().getOptions()
+#     return !!options.tracesSampleRate || !!options.tracesSampler
+#   }
+
+#   // The logic here is that performance did not exist in older SDKs (that used Raven instead
+#   // of __SENTRY__). So, if __SENTRY__ is undefined, then we can assume the page doesn't use
+#   // performance and return false.
+#   // SDKs with performance available should have __SENTRY__ defined.
+#   return false
+# }
+
+# function sentryPerformanceSampleRate() {
+#   if (usesSentryPerformance()) {
+#     let options = __SENTRY__.hub.getClient().getOptions()
+#     return options.tracesSampleRate * 100 // convert into a human-readable percentage
+#   }
+
+#   return null
+# }
+
+# function sentryErrorSampleRate() {
+#   // assume we care only about more recent SDKs
+#   let sampleRate = '<unable to determine>'
+#   if (typeof __SENTRY__ != 'undefined') {
+#     sentryConfig = __SENTRY__.hub.getClient().getOptions()
+#     configuredRate = sentryConfig.sampleRate
+#     sampleRate = configuredRate ? configuredRate*100 : sampleRate
+#   }
+
+#   return sampleRate
+# }
+
+
 
 end

@@ -19,12 +19,11 @@ companies.each do |company|
     puts "Could not detect observability for #{company.name} -- #{captured_error.message}"
     problems_scraping = captured_error.message
     detected_on = "errored out - please examine this site manually"
-    observability_products_detected = ''
+    observability_products_detected = {}
   else
     problems_scraping = nil
     observability_products_detected = observability_products_detected.empty? ? '' : observability_products_detected[:tools_used]
   end
-  
   sniffed_data = observability_products_detected.data
   org_details = {
     # segment: company.segment,
